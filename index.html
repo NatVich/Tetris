@@ -238,8 +238,8 @@
 
   /* ---------- touch pad ---------- */
   .pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-bottom: 5px; }
-  .pad button { height: 70px; border-radius: 14px; box-shadow: 0 4px 0 var(--ink); display: grid; place-items: center; padding: 0; touch-action: none; }
-  .pad svg { width: 40px; height: 40px; }
+  .pad button { height: 70px; height: clamp(72px, 11.5dvh, 100px); border-radius: 14px; box-shadow: 0 4px 0 var(--ink); display: grid; place-items: center; padding: 0; touch-action: none; }
+  .pad svg { width: 50px; height: 50px; }
   .pad .turn { background: var(--sun); }
 
   /* ---------- overlays ---------- */
@@ -629,7 +629,6 @@
     .star-ico { display: none; }
     #next { width: 48px; height: 32px; }
     .icon-btn { width: 36px; }
-    .pad button { height: 62px; }
   }
   /* tall narrow screens (phones): the board is short of width, not height, so the helpers move
      from the side columns to a strip under the board and the board takes the full width */
