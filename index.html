@@ -500,9 +500,11 @@
   .hand-slot small { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .pick-btn > svg { width: 44px; height: 44px; flex: none; }
   .play .stage { min-width: 0; }
-  /* both helper columns always keep their width, so the board is the same size in every mode */
+  /* with a helper in either hand both columns keep their width so the board stays centred;
+     with no helpers at all the columns go away and the board takes the room */
   .tool-bar { flex: none; display: flex; align-items: center; justify-content: center; width: 52px; }
   .tool-bar.empty { visibility: hidden; }
+  .play:has(#toolBarL.empty):has(#toolBarR.empty) .tool-bar { display: none; }
   .tool-btn { width: 52px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 4px; box-shadow: 0 4px 0 var(--ink); touch-action: none; line-height: 1.05; }
   .tool-btn > svg { width: 32px; height: 32px; flex: none; }
   .tool-hand { font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
