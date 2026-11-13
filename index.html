@@ -633,9 +633,10 @@
   /* tall narrow screens (phones): the board is short of width, not height, so the helpers move
      from the side columns to a strip under the board and the board takes the full width */
   @media (max-aspect-ratio: 2/3) {
-    .play { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 0 6px; }
+    /* minmax(0, 1fr): the two helper columns always share the width equally and never grow past the screen */
+    .play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 0 6px; }
     .play .stage { grid-column: 1 / -1; }
-    .tool-bar { width: auto; margin-top: 6px; grid-row: 2; }
+    .tool-bar { width: auto; min-width: 0; margin-top: 6px; grid-row: 2; }
     #toolBarL { grid-column: 1; justify-content: flex-start; }
     #toolBarR { grid-column: 2; justify-content: flex-end; }
     .tool-btn {
@@ -655,6 +656,13 @@
     .tool-btn .pips { grid-area: pips; flex-direction: row; gap: 2px; }
     .tool-btn .mini-meter { grid-area: meter; height: 36px; }
     .tool-what, .tool-key { display: none; }
+  }
+  /* small phones: two helper buttons side by side are tight, so drop the Left / Right word
+     (the side the button is on already says it) and pack the rest closer */
+  @media (max-aspect-ratio: 2/3) and (max-width: 380px) {
+    .tool-btn { grid-template-columns: auto auto 1fr auto; grid-template-areas: "icon lv count meter" "icon pips pips meter"; gap: 2px 4px; padding: 4px 6px; }
+    .tool-btn > svg { width: 28px; height: 28px; }
+    .tool-hand { display: none; }
   }
   @media (min-width: 480px) {
     .player-chip .name { display: block; }
