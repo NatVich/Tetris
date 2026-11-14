@@ -500,23 +500,22 @@
   .hand-slot small { font-size: .72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .pick-btn > svg { width: 44px; height: 44px; flex: none; }
   .play .stage { min-width: 0; }
-  /* with a helper in either hand both columns keep their width so the board stays centred;
-     with no helpers at all the columns go away and the board takes the room */
-  .tool-bar { flex: none; display: flex; align-items: center; justify-content: center; width: 52px; }
-  .tool-bar.empty { visibility: hidden; }
-  .play:has(#toolBarL.empty):has(#toolBarR.empty) .tool-bar { display: none; }
-  .tool-btn { width: 52px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 4px; box-shadow: 0 4px 0 var(--ink); touch-action: none; line-height: 1.05; }
-  .tool-btn > svg { width: 32px; height: 32px; flex: none; }
+  /* both columns always keep their width, helpers or not, so the board stays the same size
+     from game to game; empty columns are just invisible */
+  .tool-bar { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; }
+  .tool-bar.empty { visibility: hidden; padding: 0; }
+  .tool-btn { width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 3px; box-shadow: 0 4px 0 var(--ink); touch-action: none; line-height: 1.05; }
+  .tool-btn > svg { width: 24px; height: 24px; flex: none; }
   .tool-hand { font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
   .tool-btn.ready { background: var(--sun); }
   .tool-btn.waiting { background: var(--soft); }
-  .tool-lv { font-size: .9rem; }
-  .pips { display: flex; flex-direction: column; gap: 4px; }
-  .pip { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: #FFFFFF; }
+  .tool-lv { font-size: .8rem; }
+  .pips { display: flex; flex-direction: column; gap: 3px; }
+  .pip { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: #FFFFFF; }
   .pip.on { background: var(--go); }
   /* charge marks drawn as the helper's own shot picture (bombs, lasers, bullets...); faded when empty */
   .charge-pip { display: block; line-height: 0; }
-  .charge-pip svg { width: 17px; height: 17px; }
+  .charge-pip svg { width: 14px; height: 14px; }
   .charge-pip.off { opacity: .28; filter: grayscale(1); }
   .pips.row { flex-direction: row; }
   .gun-pick { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 4; background: var(--paper); border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); padding: 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: 92%; }
@@ -527,9 +526,9 @@
   .gun-choice > svg { width: 40px; height: 40px; }
   .gun-choice small { font-size: .72rem; font-weight: 800; color: var(--muted); }
   .gun-pick-hint { font-size: .72rem; font-weight: 700; color: var(--muted); }
-  .mini-meter { display: flex; flex-direction: column; justify-content: flex-end; width: 14px; height: 60px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; background: var(--paper); }
+  .mini-meter { display: flex; flex-direction: column; justify-content: flex-end; width: 12px; height: 50px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; background: var(--paper); }
   .mini-meter > span { display: block; width: 100%; }
-  .tool-count { font-size: .95rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tool-count { font-size: .85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
   .tool-what { font-size: .58rem; font-weight: 700; color: var(--muted); text-align: center; }
   .tool-key { font-size: .7rem; font-weight: 800; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 4px; background: #FFFFFF; }
 
@@ -635,7 +634,7 @@
   @media (max-aspect-ratio: 2/3) {
     .play { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 0 6px; }
     .play .stage { grid-column: 1 / -1; }
-    .tool-bar { width: auto; margin-top: 6px; grid-row: 2; }
+    .tool-bar { width: auto; margin-top: 6px; grid-row: 2; height: 46px; }
     #toolBarL { grid-column: 1; justify-content: flex-start; }
     #toolBarR { grid-column: 2; justify-content: flex-end; }
     .tool-btn {
@@ -646,14 +645,14 @@
       align-items: center;
       justify-items: start;
       gap: 2px 6px;
-      padding: 4px 8px;
+      padding: 3px 6px;
     }
-    .tool-btn > svg { grid-area: icon; width: 34px; height: 34px; }
+    .tool-btn > svg { grid-area: icon; width: 26px; height: 26px; }
     .tool-hand { grid-area: hand; }
     .tool-lv { grid-area: lv; }
     .tool-count { grid-area: count; justify-self: end; }
     .tool-btn .pips { grid-area: pips; flex-direction: row; gap: 2px; }
-    .tool-btn .mini-meter { grid-area: meter; height: 36px; }
+    .tool-btn .mini-meter { grid-area: meter; height: 30px; }
     .tool-what, .tool-key { display: none; }
   }
   @media (min-width: 480px) {
@@ -679,8 +678,8 @@
     .icon-btn { width: 64px; min-height: 64px; border-radius: 16px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
     .icon-btn svg { width: 32px; height: 32px; }
     .play { gap: 12px; }
-    .tool-bar, .tool-btn { width: 80px; }
-    .tool-btn > svg { width: 46px; height: 46px; }
+    .tool-bar, .tool-btn { width: 60px; }
+    .tool-btn > svg { width: 34px; height: 34px; }
     .tool-hand { font-size: .75rem; }
     .tool-lv { font-size: 1.1rem; }
     .pad { gap: 16px; padding-bottom: 10px; }
@@ -965,6 +964,18 @@
     <button class="big-btn go" id="scoresBackBtn">Back</button>
   </div>
 </div>
+
+<!-- Shared scoreboard on GitHub Pages: paste your Firebase web config here (leave apiKey empty to keep scores on this device only) -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: '',
+    authDomain: '',
+    projectId: '',
+    appId: ''
+  };
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
 (() => {
@@ -5175,7 +5186,10 @@
   // ---------- shared database ----------
   (async () => {
     try {
-      const d = window.claude && window.claude.use ? await window.claude.use('db') : null;
+      const fb = window.FIREBASE_CONFIG;
+      const d = window.claude && window.claude.use ? await window.claude.use('db')
+        : fb && fb.apiKey && window.firebase ? firebase.initializeApp(fb).firestore()
+        : null;
       if (!d) return;
       db = d;
       let first = true;
