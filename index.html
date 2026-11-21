@@ -1075,8 +1075,7 @@
   // ---------- browser storage (optional) ----------
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); this.ok = true; } catch { this.ok = false; } },
-    ok: true // false when this browser refuses to keep anything (private window, storage blocked or full)
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
   };
   // ask the browser not to clear this game's saved players when it tidies up old site data
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch {}
@@ -1980,11 +1979,13 @@
   // the game opens, instead of quietly staying on this device only.
   const unsaved = new Set(store.get('bb-unsaved', []) || []);
   const sending = new Set(), rev = {}; // rev[id] goes up with every change, so a write knows if it is already out of date
-  let dbReady = false; // true once the shared players have loaded, so an older copy here never overwrites a newer one there
+  // playersKept: whether the last write of the players list itself stuck (private window, storage blocked or full)
+  let playersKept = true;
+  let dbReady = false, dbTimedOut = false; // true once the shared players have loaded, so an older copy here never overwrites a newer one there
   let retryT = null, retryMs = 2000, saveError = '';
   const noteUnsaved = () => store.set('bb-unsaved', [...unsaved]);
   function savePlayer(id) {
-    store.set('bb-players', players);
+    playersKept = store.set('bb-players', players);
     rev[id] = (rev[id] || 0) + 1;
     unsaved.add(id);
     noteUnsaved();
@@ -1996,8 +1997,10 @@
   const FINAL_DB_ERRORS = ['invalid_argument', 'transform_error', 'not_granted', 'revoked', 'capability_disabled', 'capability_removed', 'quota_exceeded',
     'permission-denied', 'unauthenticated', 'invalid-argument', 'failed-precondition'];
   function flushSaves() {
-    if (!db || !dbWritable || !dbReady) return;
-    [...unsaved].forEach(id => { if (!sending.has(id)) sendPlayer(id); });
+    if (!db || !dbWritable || !(dbReady || dbTimedOut)) return;
+    // until the shared players have been compared, only send players changed during this visit:
+    // a copy queued on an earlier visit might be older than what another device has saved since
+    [...unsaved].forEach(id => { if (!sending.has(id) && (dbReady || rev[id])) sendPlayer(id); });
   }
   // one write at a time for each player; a change made while a write is on its way goes out right after it
   async function sendPlayer(id) {
@@ -2030,7 +2033,7 @@
       if (saveError === 'retry') return ['Could not save online just now. Trying again...', true];
       return [unsaved.size ? 'Saving...' : 'Players are saved online.', false];
     }
-    if (!store.ok) return ['This browser is not keeping saved players. They will be gone when the game closes.', true];
+    if (!playersKept) return ['This browser is not keeping saved players. They will be gone when the game closes.', true];
     if (saveError === 'full') return ['The online save is full. New players are saved on this device only.', true];
     if (saveError === 'readonly') return ['You can only look at the shared players here. New players are saved on this device only.', true];
     return ['Players are saved on this device only.', false];
@@ -5283,7 +5286,7 @@
         flushSaves();
       };
       // if the shared players cannot be reached for 10 seconds, stop waiting and send what is waiting anyway
-      let waitT = setTimeout(() => { dbReady = true; flushSaves(); paintSaveNote(); }, 10000);
+      let waitT = setTimeout(() => { dbTimedOut = true; flushSaves(); paintSaveNote(); }, 10000);
       db.collection('players').limit(300).onSnapshot(snap => {
         const shared = new Map();
         snap.docs.forEach(doc => {
@@ -5293,7 +5296,7 @@
           mergeIn(doc.id, raw);
         });
         if (!(snap.metadata && snap.metadata.fromCache)) { clearTimeout(waitT); catchUp(shared); }
-        store.set('bb-players', players);
+        playersKept = store.set('bb-players', players);
         refreshChip();
         paintSaveNote();
         if (!running) showBest();
@@ -5304,7 +5307,7 @@
       }, () => {
         // the live list stopped: keep playing with what is here; saving still goes on
         clearTimeout(waitT);
-        dbReady = true; flushSaves(); paintSaveNote();
+        dbTimedOut = true; flushSaves(); paintSaveNote();
       });
     } catch { db = null; paintSaveNote(); }
   })();
