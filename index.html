@@ -274,6 +274,8 @@
   .card h2.title { font-size: 2.4rem; text-shadow: 0 3px 0 var(--sun); }
   .card p { margin: 0; font-size: 1.1rem; font-weight: 600; line-height: 1.3; }
   .hint { font-size: .95rem !important; color: var(--muted); }
+  .save-note { font-size: .8rem !important; margin: 6px 0 0; }
+  .save-note.warn { color: #B3261E; font-weight: 700; }
   .center-av { display: flex; justify-content: center; }
 
   .big-btn { padding: 11px 16px; font-size: 1.45rem; font-weight: 800; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
@@ -632,9 +634,10 @@
   /* tall narrow screens (phones): the board is short of width, not height, so the helpers move
      from the side columns to a strip under the board and the board takes the full width */
   @media (max-aspect-ratio: 2/3) {
-    .play { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 0 6px; }
+    /* minmax(0, 1fr): the two helper columns always share the width equally and never grow past the screen */
+    .play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 0 6px; }
     .play .stage { grid-column: 1 / -1; }
-    .tool-bar { width: auto; margin-top: 6px; grid-row: 2; height: 46px; }
+    .tool-bar { width: auto; min-width: 0; margin-top: 6px; grid-row: 2; height: 46px; }
     #toolBarL { grid-column: 1; justify-content: flex-start; }
     #toolBarR { grid-column: 2; justify-content: flex-end; }
     .tool-btn {
@@ -654,6 +657,13 @@
     .tool-btn .pips { grid-area: pips; flex-direction: row; gap: 2px; }
     .tool-btn .mini-meter { grid-area: meter; height: 30px; }
     .tool-what, .tool-key { display: none; }
+  }
+  /* small phones: two helper buttons side by side are tight, so drop the Left / Right word
+     (the side the button is on already says it) and pack the rest closer */
+  @media (max-aspect-ratio: 2/3) and (max-width: 380px) {
+    .tool-btn { grid-template-columns: auto auto 1fr auto; grid-template-areas: "icon lv count meter" "icon pips pips meter"; gap: 2px 4px; padding: 3px 5px; }
+    .tool-btn > svg { width: 24px; height: 24px; }
+    .tool-hand { display: none; }
   }
   @media (min-width: 480px) {
     .player-chip .name { display: block; }
@@ -837,6 +847,7 @@
       <button type="submit" class="big-btn go">Add me</button>
     </form>
     <button class="small-btn" id="whoBackBtn">Back</button>
+    <p class="hint save-note" id="saveNote" aria-live="polite"></p>
   </div>
 </div>
 
@@ -1064,8 +1075,10 @@
   // ---------- browser storage (optional) ----------
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
   };
+  // ask the browser not to clear this game's saved players when it tidies up old site data
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch {}
 
   // ---------- sound ----------
   let audio = null, muted = store.get('bb-muted', false);
@@ -1959,11 +1972,78 @@
     if (id === 'superman') superUp();
   }
 
-  async function savePlayer(id) {
-    store.set('bb-players', players);
-    if (!db || !dbWritable) return;
-    try { await db.doc('players/' + id).set(players[id]); }
-    catch { dbWritable = false; }
+  // ---------- saving players ----------
+  // Every change is kept in this browser straight away and, when the shared database is there,
+  // sent to it too. A player that has not reached the database yet stays on the "unsaved" list
+  // (kept in the browser as well), so it is sent again after a network hiccup or the next time
+  // the game opens, instead of quietly staying on this device only.
+  const unsaved = new Set(store.get('bb-unsaved', []) || []);
+  const sending = new Set(), rev = {}; // rev[id] goes up with every change, so a write knows if it is already out of date
+  // playersKept: whether the last write of the players list itself stuck (private window, storage blocked or full)
+  let playersKept = true;
+  let dbReady = false, dbTimedOut = false; // true once the shared players have loaded, so an older copy here never overwrites a newer one there
+  let retryT = null, retryMs = 2000, saveError = '';
+  const noteUnsaved = () => store.set('bb-unsaved', [...unsaved]);
+  function savePlayer(id) {
+    playersKept = store.set('bb-players', players);
+    rev[id] = (rev[id] || 0) + 1;
+    unsaved.add(id);
+    noteUnsaved();
+    flushSaves();
+    paintSaveNote();
+  }
+  // errors that trying again cannot fix: this viewer may not write, or the database is full
+  // (claude.ai database codes, then the Firebase ones used when the game runs on GitHub Pages)
+  const FINAL_DB_ERRORS = ['invalid_argument', 'transform_error', 'not_granted', 'revoked', 'capability_disabled', 'capability_removed', 'quota_exceeded',
+    'permission-denied', 'unauthenticated', 'invalid-argument', 'failed-precondition'];
+  function flushSaves() {
+    if (!db || !dbWritable || !(dbReady || dbTimedOut)) return;
+    // until the shared players have been compared, only send players changed during this visit:
+    // a copy queued on an earlier visit might be older than what another device has saved since
+    [...unsaved].forEach(id => { if (!sending.has(id) && (dbReady || rev[id])) sendPlayer(id); });
+  }
+  // one write at a time for each player; a change made while a write is on its way goes out right after it
+  async function sendPlayer(id) {
+    const body = players[id], sent = rev[id] || 0;
+    if (!body) { unsaved.delete(id); noteUnsaved(); return; }
+    sending.add(id);
+    let failed = null;
+    try { await db.doc('players/' + id).set(body); }
+    catch (e) { failed = e || {}; }
+    sending.delete(id);
+    if (!failed) {
+      retryMs = 2000; saveError = '';
+      if ((rev[id] || 0) === sent) { unsaved.delete(id); noteUnsaved(); }
+      else if (dbWritable) sendPlayer(id);
+    } else if (FINAL_DB_ERRORS.includes(failed.code)) {
+      dbWritable = false;
+      saveError = failed.code === 'quota_exceeded' ? 'full' : 'readonly';
+    } else {
+      // a network hiccup or a busy moment: try again shortly, a little later each time (up to 1 minute)
+      saveError = 'retry';
+      clearTimeout(retryT);
+      retryT = setTimeout(flushSaves, retryMs);
+      retryMs = Math.min(60000, retryMs * 2);
+    }
+    paintSaveNote();
+  }
+  // one line on the player and scoreboard screens that says where the players are being kept
+  function saveNote() {
+    if (db && dbWritable) {
+      if (saveError === 'retry') return ['Could not save online just now. Trying again...', true];
+      return [unsaved.size ? 'Saving...' : 'Players are saved online.', false];
+    }
+    if (!playersKept) return ['This browser is not keeping saved players. They will be gone when the game closes.', true];
+    if (saveError === 'full') return ['The online save is full. New players are saved on this device only.', true];
+    if (saveError === 'readonly') return ['You can only look at the shared players here. New players are saved on this device only.', true];
+    return ['Players are saved on this device only.', false];
+  }
+  function paintSaveNote() {
+    const node = $('saveNote');
+    if (!node) return;
+    const [text, warn] = saveNote();
+    node.textContent = text;
+    node.classList.toggle('warn', warn);
   }
 
   function refreshChip() {
@@ -3820,6 +3900,7 @@
     $('whoEmpty').hidden = ids.length > 0;
     $('newPlayerForm').hidden = whoEdit;
     $('whoBackBtn').hidden = !me() || whoEdit;
+    paintSaveNote();
 
     const preview = norm({ color: pickedColor });
     const kr = $('newKidRow');
@@ -5192,24 +5273,43 @@
         : null;
       if (!d) return;
       db = d;
-      let first = true;
+      paintSaveNote();
+      // anything changed here that the shared board does not have yet (or has an older copy of) is sent up
+      const catchUp = shared => {
+        Object.keys(players).forEach(id => {
+          const theirs = shared.get(id);
+          if (theirs === undefined || players[id].updated > theirs) unsaved.add(id);
+          else if (!sending.has(id) && !rev[id]) unsaved.delete(id);
+        });
+        noteUnsaved();
+        dbReady = true;
+        flushSaves();
+      };
+      // if the shared players cannot be reached for 10 seconds, stop waiting and send what is waiting anyway
+      let waitT = setTimeout(() => { dbTimedOut = true; flushSaves(); paintSaveNote(); }, 10000);
       db.collection('players').limit(300).onSnapshot(snap => {
-        snap.docs.forEach(doc => mergeIn(doc.id, doc.data()));
-        if (first && !snap.metadata.fromCache) {
-          first = false;
-          // Players made on this device before the shared board loaded get copied up once
-          const shared = new Set(snap.docs.map(doc => doc.id));
-          Object.keys(players).filter(id => !shared.has(id)).forEach(id => { savePlayer(id); });
-        }
-        store.set('bb-players', players);
+        const shared = new Map();
+        snap.docs.forEach(doc => {
+          const raw = doc.data();
+          if (!raw) return;
+          shared.set(doc.id, String(raw.updated || ''));
+          mergeIn(doc.id, raw);
+        });
+        if (!(snap.metadata && snap.metadata.fromCache)) { clearTimeout(waitT); catchUp(shared); }
+        playersKept = store.set('bb-players', players);
         refreshChip();
+        paintSaveNote();
         if (!running) showBest();
         const v = visibleScreen();
         if (v === 'whoScreen') renderWho();
         else if (v === 'homeScreen') openHome();
         else if (v === 'scoresScreen') renderScores();
-      }, () => {});
-    } catch { db = null; }
+      }, () => {
+        // the live list stopped: keep playing with what is here; saving still goes on
+        clearTimeout(waitT);
+        dbTimedOut = true; flushSaves(); paintSaveNote();
+      });
+    } catch { db = null; paintSaveNote(); }
   })();
 
   // ---------- idle scene behind the first card ----------
