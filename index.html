@@ -392,7 +392,13 @@
     gap: 8px 12px;
   }
   .look-top .buy-bar { flex: 1 1 0; min-width: 0; min-height: 40px; font-size: .9rem; line-height: 1.15; text-align: center; }
-  .look-top .wallet { flex: none; }
+  .look-top .wallet { flex: none; padding: 2px 14px 2px 6px; }
+  .look-top .wallet svg { width: 32px; height: 32px; }
+  .look-top .wallet .w-num { font-size: 1.5rem; }
+  .look-top .wallet .w-label { font-size: .75rem; }
+  .look-top .buy-btn { width: 100%; max-width: 170px; justify-content: center; padding: 6px 10px; font-size: 1.1rem; }
+  .buy-btn:disabled { background: #BDEFD2; color: var(--muted); box-shadow: 0 3px 0 var(--muted); cursor: default; }
+  .buy-btn:disabled svg { opacity: .6; }
   .look-top h2 { flex: 0 0 100%; text-align: center; margin: 0; }
   .look-top .big-btn { flex: 0 0 100%; width: 100%; margin: 0; padding-top: 6px; padding-bottom: 6px; }
   .look-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
@@ -4128,7 +4134,7 @@
       tryItem = null;
       sfx.reward();
       renderLook();
-      $('lookMsg').textContent = 'You are the Grand Wizard! Press Done to keep this look.';
+      $('lookMsg').textContent = 'You are the Grand Wizard! Press Back to keep this look.';
       cheer($('lookPreview').firstChild);
     });
     sec.append(b);
@@ -4138,22 +4144,24 @@
     const bar = $('buyBar');
     bar.replaceChildren();
     const it = tryItem && lookDraft[tryItem.slot] === tryItem.id && !p.owned[tryItem.id] ? tryItem : null;
+    const btn = el('button', 'buy-btn');
+    btn.type = 'button';
+    btn.innerHTML = STAR_SVG;
     if (!it) {
-      bar.append(el('span', 'hint', 'Tap anything to try it on.'));
-      return;
-    }
-    const cash = wallet(p);
-    if (cash >= it.price) {
-      const btn = el('button', 'buy-btn');
-      btn.type = 'button';
-      btn.innerHTML = STAR_SVG;
-      btn.append(it.price ? 'Buy for ' + it.price : 'Get it free!');
+      // nothing picked yet: a resting green button so the spot is never empty
+      btn.disabled = true;
+      btn.append('Buy 0');
+      btn.setAttribute('aria-label', 'Tap anything to try it on, then buy it here');
+    } else if (wallet(p) >= it.price) {
+      btn.append(it.price ? 'Buy ' + it.price : 'Free!');
       btn.setAttribute('aria-label', it.price ? 'Buy the ' + it.name + ' for ' + it.price + ' stars' : 'Get the ' + it.name + ' for free');
       btn.addEventListener('click', () => buyItem(it));
-      bar.append(el('span', null, 'Like the ' + it.name + '?'), btn);
     } else {
-      bar.append(el('span', null, 'The ' + it.name + ' costs ' + it.price + ' stars. Catch ' + (it.price - cash) + ' more to buy it!'));
+      btn.disabled = true;
+      btn.append('Need ' + (it.price - wallet(p)));
+      btn.setAttribute('aria-label', 'The ' + it.name + ' costs ' + it.price + ' stars. Catch ' + (it.price - wallet(p)) + ' more to buy it');
     }
+    bar.append(btn);
   }
   // Helpers: bought and upgraded for the price of their rank. A player owns both if they like,
   // but picks one to take into games.
