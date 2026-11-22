@@ -386,10 +386,14 @@
     background: var(--paper);
     border-bottom: 3px dashed var(--dash);
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 8px 12px;
   }
+  .look-top h2 { flex: 0 0 100%; text-align: center; margin: 0; }
+  .look-top .big-btn { width: auto; min-width: 110px; margin: 0; }
+  .look-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
   /* big star wallet: how many stars are left to spend, always in view at the top of the shop */
   .wallet {
     position: relative;
@@ -867,8 +871,11 @@
   <div class="card wide">
     <div class="look-top">
       <h2>Shop</h2>
-      <div class="center-av" id="lookPreview"></div>
       <div class="wallet" id="lookWallet"></div>
+      <button class="big-btn go" id="lookDoneBtn">Done</button>
+    </div>
+    <div class="look-preview">
+      <div class="center-av" id="lookPreview"></div>
       <div class="buy-bar" id="buyBar" aria-live="polite"></div>
     </div>
     <div class="tabs shop-tabs" id="shopTabs" role="group" aria-label="Shop sections"></div>
@@ -877,7 +884,6 @@
     <div class="look-section looks-only"><b>Hair</b><div class="swatches" id="hairRow"></div></div>
     <div id="shopSections" style="display:flex;flex-direction:column;gap:12px"></div>
     <p class="look-msg" id="lookMsg" aria-live="polite"></p>
-    <button class="big-btn go" id="lookDoneBtn">Done</button>
   </div>
 </div>
 
