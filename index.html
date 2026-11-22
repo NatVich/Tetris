@@ -391,6 +391,7 @@
     justify-content: center;
     gap: 8px 12px;
   }
+  .look-top .buy-bar { flex: 0 0 100%; min-height: 40px; }
   .look-top h2 { flex: 0 0 100%; text-align: center; margin: 0; }
   .look-top .big-btn { width: auto; min-width: 110px; margin: 0; }
   .look-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
@@ -873,10 +874,10 @@
       <h2>Shop</h2>
       <div class="wallet" id="lookWallet"></div>
       <button class="big-btn go" id="lookDoneBtn">Done</button>
+      <div class="buy-bar" id="buyBar" aria-live="polite"></div>
     </div>
     <div class="look-preview">
       <div class="center-av" id="lookPreview"></div>
-      <div class="buy-bar" id="buyBar" aria-live="polite"></div>
     </div>
     <div class="tabs shop-tabs" id="shopTabs" role="group" aria-label="Shop sections"></div>
     <div class="look-section looks-only"><b>Kid</b><div class="kid-row" id="kidRow"></div></div>
