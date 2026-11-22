@@ -391,9 +391,10 @@
     justify-content: center;
     gap: 8px 12px;
   }
-  .look-top .buy-bar { flex: 0 0 100%; min-height: 40px; }
+  .look-top .buy-bar { flex: 1 1 0; min-width: 0; min-height: 40px; font-size: .9rem; line-height: 1.15; text-align: center; }
+  .look-top .wallet { flex: none; }
   .look-top h2 { flex: 0 0 100%; text-align: center; margin: 0; }
-  .look-top .big-btn { width: auto; min-width: 110px; margin: 0; }
+  .look-top .big-btn { flex: 0 0 100%; width: 100%; margin: 0; padding-top: 6px; padding-bottom: 6px; }
   .look-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
   /* big star wallet: how many stars are left to spend, always in view at the top of the shop */
   .wallet {
@@ -873,8 +874,8 @@
     <div class="look-top">
       <h2>Shop</h2>
       <div class="wallet" id="lookWallet"></div>
-      <button class="big-btn go" id="lookDoneBtn">Done</button>
       <div class="buy-bar" id="buyBar" aria-live="polite"></div>
+      <button class="big-btn go" id="lookDoneBtn">Back</button>
     </div>
     <div class="look-preview">
       <div class="center-av" id="lookPreview"></div>
